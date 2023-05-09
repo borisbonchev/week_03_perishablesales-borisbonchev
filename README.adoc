@@ -1,0 +1,71 @@
+ifdef::env-github[]
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+:imagesdir: images/
+endif::[]
+
+= Exercise Testable Design
+
+This exercise is about building part of a cash register system of a supermarket. We'll focus on testing and developing the System Under Test (SUT), being the CashRegister class. The cash register is dependent on three components, the so-called Depending On Components (DOCs):
+
+* A Printer to print a sales receipt
+* A screen (UI) to display information on for the cashier
+* A SalesService that gets product information (like e.g. name, price, bar code ) from a database and is able to store a purchase order.
+
+As discussed in class, we want to test the CashRegister class in isolation, not being dependent on the actual DOCs (these might not have been tested yet or not even be developed at all yet); we want to fake the DOCs and just test if the communication between the CashRegister and its faked DOCs is as expected.
+
+See the class diagram below. A class diagram is a design artifact that will be discussed in AADE in detail. The most important parts of it have been discussed already in PRC1. 
+
+.Class diagram
+image::perishablesales.svg[]
+
+As described on the website, the business class can live in two worlds: (1) the Business world in which it is part of the actual real world application and (2) the test world in which we isolate the SUT and fake the environment. In this assignment, we consider the TEST WORLD only (there is no real Graphical User Interface (GUI)).
+
+What is a typical 'use case'?
+
+* A customer shows up at the cashier desk. The cashier takes the chosen products one by one
+and scans these with a bar-code scanner. 
+* The system reads the bar-code number using the scan(...) method of the CashRegister. It uses the salesService to lookup product information and it memorizes (inside of CashRegister) the fact that the product was scanned in a SalesRecord.
+* After each scan, the cashier has three possibilities:
+   . Scan a next product (*scan(...)* method)
+   . Print a receipt (*printReceipt(...)* method)
+   . Finalize the sales transaction (*finalizeSalesTransaction()*) In this case, all salesRecords are stored using the salesService.
+
+Some additional requirements:
+
+* When the same product is scanned again, no new SalesRecord is created, but the quantity of the already existing SalesRecord for this product is increased by 1.
+
+* There are two types of product: non-perishable and perishable. Perishable products are products with a limited shelf life. Think of fresh products
+such as milk, meat, vegetables, fruit, or anything that has a best before date. The Product class registers if a product is perishable or not.
+
+* When a perishable product is scanned, the cashier gets a calendar presented on the display (method displayCalendar() on UI). The cashier selects the best before date for this product. The *correctSalesPrice(...)* method is invoked and the system determines how many days there are between the current date and the chosen best before date. If the remaining number of days is less than 2, the customer gets a price reduction in line with the table below:
+
+[cols=">,>,>", header]
+|====
+| days left | percent off | remaining price in %
+| >= 2       | 0       | 100
+| 1         | 35   | 65
+| 0         | 65 | 35
+| < 0       | 100 | 0
+|====
+
+* When a receipt is printed, all products are printed in scan order, however first all perishable products are printed, afterwards all non-perishables. A line on the receipt contains the product description, the (possibly reduced) sales price per piece and the quantity.  
+
+The `CashRegister` is given a `Clock`, a `Printer`, a `UI` and a `SalesService` at construction time. In dependency injection parlance this is called constructor injection for obvious reasons. The clock is used in the correctSalesPrice(...) method to determine the actual date. Printer, UI and SalesService should be mocked for the purpose of testing.
+
+Some remarks / assumptions:
+
+* Actual payment has been left out of this exercise.
+* This assignment assumes that all products of the same type (so having the same bar code) have the same best before date and therefore the same (reduced) price.
+* Canceling a purchase is not supported
+* The only work to be done is in the classes CashRegisterTest and CashRegister.
+* You're allowed to write more tests than the tests that are predefined in the assignment. 
+
+*Your Tasks* +
+
+* Have a look at all provided classes in your assignment project. Read the Javadoc comments carefully. They will give you quite some hints about the tests and the implementation.
+
+* Test-driven develop the CashRegister class. Make sure to Mock the DependentOnComponents in your tests. Both test- and implementation classes contain numbered TODO's. It's recommended to work in the given order.
